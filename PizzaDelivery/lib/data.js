@@ -16,6 +16,10 @@ lib.baseDir = path.join(__dirname,'/../.data/');
 
 // Write data to a file
 lib.create = function(dir,file,data,callback){
+  if (!fs.existsSync(lib.baseDir+dir)) {
+    console.log("the folder \""+dir+"\" doesn't exist, lets create it")
+    fs.mkdirSync(lib.baseDir+dir);
+  }
   // Open the file for writing
   fs.open(lib.baseDir+dir+'/'+file+'.json', 'wx', function(err, fileDescriptor){
     if(!err && fileDescriptor){
@@ -48,6 +52,7 @@ lib.read = function(dir,file,callback){
   fs.readFile(lib.baseDir+dir+'/'+file+'.json', 'utf8', function(err,data){
     if(!err && data){
       var parsedData = helpers.parseJsonToObject(data);
+      //console.log("read success: "+parsedData)
       callback(false,parsedData);
     } else {
       callback(err,data);
