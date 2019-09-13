@@ -17,7 +17,8 @@ environments.staging = {
 		'secretkey' : 'your-secret-key'
 	},
 	'mailgun' : {
-		'secretkey' : 'your-secret-key'
+		'secretkey' : 'your-secret-key',
+		'domain' : 'your-domain'
 	}
 };
 
