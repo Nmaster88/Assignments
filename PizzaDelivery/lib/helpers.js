@@ -207,7 +207,8 @@ helpers.sendMailGun = function(toMail, subject, text, callback) {
 
   if (toMail && subject && text) {
       var data = {
-          from: 'postmaster@sandbox08fbc8d417944752ad6a68be1d9f2766.mailgun.org',
+          //from: 'postmaster@sandbox08fbc8d417944752ad6a68be1d9f2766.mailgun.org',
+          from: 'postmaster@'+config.mailgun.domain,
           to: toMail,
           subject: subject,
           text: text
