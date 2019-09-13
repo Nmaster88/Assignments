@@ -40,6 +40,7 @@ handlers._users  = {};
 // Users - post
 // Required data: name, email, address, password, tosAgreement
 // Optional data: none
+// todo: It will be good to have a mechanism that prevents spam of this method
 handlers._users.post = function(data,callback){
   // Check that all required fields are filled out
   var name = typeof(data.payload.name) == 'string' && data.payload.name.trim().length > 0 ? data.payload.name.trim() : false;
@@ -133,7 +134,7 @@ handlers._users.put = function(data,callback){
   var address = typeof(data.payload.address) == 'string' && data.payload.address.trim().length > 0 ? data.payload.address.trim() : false;
   var password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 ? data.payload.password.trim() : false;
 
-  // Error if phone is invalid
+  // Error if email is invalid
   if(email){
     // Error if nothing is sent to update
     if(name || address || password){
@@ -205,21 +206,21 @@ handlers._users.delete = function(data,callback){
               if(!err){
                 // Delete each of the orders associated with the user
                 var userOrders = typeof(userData.orders) == 'object' && userData.orders instanceof Array ? userData.orders : [];
-                var checksToDelete = userChecks.length;
-                if(checksToDelete > 0){
+                var ordersToDelete = userOrders.length;
+                if(ordersToDelete > 0){
                   // delete orders and keep track of how many were deleted
-                  var checksDeleted = 0;
+                  var ordersDeleted = 0;
                   // Error flag on delete
                   var deletionErrors = false;
                   // Loop through the checks
-                  userChecks.forEach(function(checkId){
-                    // Delete the check
-                    _data.delete('checks',checkId,function(err){
+                  userOrders.forEach(function(orderId){
+                    //TODO: Delete the orders and tokens associated with the user
+                    _data.delete('checks',orderId,function(err){
                       if(err){
                         deletionErrors = true;
                       }
-                      checksDeleted++;
-                      if(checksDeleted == checksToDelete){
+                      ordersDeleted++;
+                      if(ordersDeleted == ordersToDelete){
                         if(!deletionErrors){
                           callback(200);
                         } else {
@@ -268,7 +269,7 @@ handlers._tokens.post = function(data,callback){
   var email = typeof(data.payload.email) == 'string' && data.payload.email.trim().length > 0 && helpers.validateEmail(data.payload.email) ? data.payload.email.trim() : false;
   var password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 ? data.payload.password.trim() : false;
   if(email && password){
-    // Lookup the user who matches that phone number
+    // Lookup the user who matches that email number
     _data.read('users',email,function(err,userData){
       if(!err && userData){
         // Hash the sent password, and compare it to the password stored in the user object
@@ -276,7 +277,7 @@ handlers._tokens.post = function(data,callback){
         if(hashedPassword == userData.hashedPassword){
           // If valid, create a new token with a random name. Set an expiration date 1 hour in the future.
           var tokenId = helpers.createRandomString(20);
-          var expires = Date.now() + 1000 * 60 * 60;
+          var expires = Date.now() + 1000 * 60 * 60;//todo: pass this to config.js
           var tokenObject = {
             'email' : email,
             'id' : tokenId,
@@ -386,6 +387,7 @@ handlers._tokens.delete = function(data,callback){
 };
 
 // Verify if a given token id is currently valid for a given user
+// This method is used by other methods
 handlers._tokens.verifyToken = function(id,email,callback){
   // Lookup the token
   _data.read('tokens',id,function(err,tokenData){
@@ -438,6 +440,7 @@ handlers._menus.get = function(data, callback) {
 };
 
 // Checks - Post
+// TODO: Future Implementation
 // required data: id, protocol, url, method, successCode, timeoutSeconds
 // Optional Data: token in header
 handlers._menus.post = function(data, callback) {
@@ -474,7 +477,7 @@ handlers._cart =  {};
 
 
 // Cart - Post
-// required data: id (generated not included), email, itemcode, count
+// required data: email, itemcode, count, price
 // Optional Data: token in header
 handlers._cart.post = function(data, callback) {
   var email = typeof(data.payload.email) == 'string' && data.payload.email.trim().length && helpers.validateEmail(data.payload.email) > 0 ? data.payload.email.trim() : false;
@@ -591,6 +594,7 @@ handlers._cart.get = function(data, callback) {
 }
 
 // Calculate cart totals
+// We add to the cart file the new total price of items, the value of taxes, and the value that is to be payed
 handlers._cart.calcCartTotals = function(cartId, callback) {
  cartId = typeof(cartId) == 'string' && cartId.length > 0 ? cartId : false;
   if (cartId) {
@@ -629,6 +633,7 @@ handlers._cart.calcCartTotals = function(cartId, callback) {
 // cart - Delete
 // Required data: token in header
 // Optional Data: token in header
+//Todo: give the possibility to delete only a specific item from the cart
 handlers._cart.delete = function(data, callback) {
   // retrieve token 
   var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
@@ -719,7 +724,7 @@ handlers._checkout =  {};
 
 
 // checkout - post
-// checkout cart by making payment this should create and a paid order
+// checkout cart by making payment this should create a paid order
 // required data: token in header and an available cart record.
 // Optional Data: token in header
 handlers._checkout.post = function(data, callback) {
@@ -780,7 +785,7 @@ handlers._checkout.post = function(data, callback) {
                                       _data.update('users',cartData.email,userData, function(err) {
                                           if (!err) {
                                               //    Notify user when order is complete
-                                              helpers.sendMailGun('vimalp@ri-net.com', 
+                                              helpers.sendMailGun(cartData.email, //email of user 
                                                                       'Pizza Order # '+ orderId + " processed", 
                                                                       'Order was processed successfully.',
                                                                       (err_res) => {
